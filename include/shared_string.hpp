@@ -31,9 +31,11 @@ namespace kab
 		}
 		basic_shared_string(basic_shared_string const& other)
 			: Allocator(alloc_traits::select_on_container_copy_construction(other.access_allocator()))
-			, control(acquire_if_valid(other.control))
-			, value_begin(other.value_begin)
-			, value_end(other.value_end) {
+			, control(alloc_traits::is_always_equal::value || access_allocator() == other.access_allocator() 
+				? acquire_if_valid(other.control)
+				: make_control({other.value_begin, other.size()}, access_allocator()))
+			, value_begin(control != nullptr ? control->owned_data : nullptr)
+			, value_end(value_begin + other.size()) {
 
 		}
 		basic_shared_string(basic_shared_string && other) noexcept

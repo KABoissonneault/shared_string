@@ -94,6 +94,9 @@ namespace {
 			
 		}
 
+		// Does not copy, returns a new instance
+		non_propagating_allocator select_on_container_copy_construction() const noexcept { return non_propagating_allocator(); }
+
 		T* allocate(size_type n) {
 			auto const p = ::operator new(n * sizeof(T) + sizeof(size_t));
 			new(p) size_t(identity_);
@@ -214,23 +217,40 @@ TEST_CASE("Shared String Empty Move Assign", "[string]") {
 }
 
 TEST_CASE("Shared String Value Copy", "[string]") {
-	counting_string const value("Hello, World!");
-	auto const value_alloc_count = value.get_allocator().get_alloc_count();
+	auto const test_value = [](auto const& s, std::string_view test_value) {
+		REQUIRE(!s.empty());
+		REQUIRE(s.size() == test_value.size());
+		REQUIRE(s[0] == test_value[0]);
+		REQUIRE(s.front() == test_value.front());
+		REQUIRE(s[test_value.size() - 1] == test_value[test_value.size() - 1]);
+		REQUIRE(s.back() == test_value.back());
+		REQUIRE_NOTHROW(s.at(0) == test_value.at(0));
+		REQUIRE_NOTHROW(s.at(test_value.size() - 1) == test_value.at(test_value.size() - 1));
+		REQUIRE_THROWS_AS(s.at(test_value.size()), std::out_of_range);
+		REQUIRE(std::strncmp(s.data(), test_value.data(), s.size()) == 0);
+	};
 
-	auto const s = value;
+	// Propagating allocator
+	{
+		counting_string const value("Hello, World!");
+		auto const value_alloc_count = value.get_allocator().get_alloc_count();
 
-	REQUIRE(!s.empty());
-	REQUIRE(s.size() == 13);
-	REQUIRE(s[0] == 'H');
-	REQUIRE(s.front() == 'H');
-	REQUIRE(s[12] == '!');
-	REQUIRE(s.back() == '!');
-	REQUIRE_NOTHROW(s.at(0) == 'H');
-	REQUIRE_NOTHROW(s.at(12) == '!');
-	REQUIRE_THROWS_AS(s.at(13), std::out_of_range);
-	REQUIRE(std::strncmp(s.data(), "Hello, World!", s.size()) == 0);
-	
-	REQUIRE(s.get_allocator().get_alloc_count() == value_alloc_count);
+		auto const s = value;
+
+		test_value(s, "Hello, World!");
+
+		REQUIRE(s.get_allocator() == value.get_allocator());
+		REQUIRE(s.get_allocator().get_alloc_count() == value_alloc_count);
+	}
+
+	// Non-propagating allocator
+	{
+		non_propagating_string const value("Hello, World!");
+
+		auto const s = value;
+
+		REQUIRE(s.get_allocator() != value.get_allocator());
+	}
 }
 
 TEST_CASE("Shared String Value Copy Assign", "[string]") {
