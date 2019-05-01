@@ -70,6 +70,52 @@ namespace {
 	};
 
 	using counting_string = kab::basic_shared_string<char, std::char_traits<char>, counting_allocator<char>>;
+
+	template<typename T>
+	class non_propagating_allocator
+	{
+		size_t identity_ = identity_counter.fetch_add(1);
+
+		template<typename>
+		friend class non_propagating_allocator;
+	public:
+		using value_type = T;
+		using size_type = size_t;
+
+		using propagate_on_container_copy_assignment = std::false_type;
+		using propagate_on_container_move_assignment = std::false_type;
+
+		non_propagating_allocator() = default;
+		template<typename U>
+		non_propagating_allocator(non_propagating_allocator<U> const& other)
+			: identity_(other.identity_) {
+			
+		}
+
+		T* allocate(size_type n) {
+			auto const p = ::operator new(n * sizeof(T) + sizeof(size_t));
+			new(p) size_t(identity_);
+			return reinterpret_cast<T*>(static_cast<std::byte*>(p) + sizeof(size_t));
+		}
+
+		void deallocate(T * ptr, size_type n) noexcept {
+			auto const storage = reinterpret_cast<size_t*>(ptr) - 1;
+			auto const identity = *storage;
+			REQUIRE(identity == identity_);
+
+			::operator delete(storage, n * sizeof(T) + sizeof(size_t));
+		}
+
+		friend bool operator==(non_propagating_allocator const& lhs, non_propagating_allocator const& rhs) {
+			return lhs.identity_ == rhs.identity_;
+		}
+
+		friend bool operator!=(non_propagating_allocator const& lhs, non_propagating_allocator const& rhs) {
+			return lhs.identity_ != rhs.identity_;
+		}
+	};
+
+	using non_propagating_string = kab::basic_shared_string<char, std::char_traits<char>, non_propagating_allocator<char>>;
 }
 
 TEST_CASE("Shared String Empty", "[string]") {
@@ -189,7 +235,7 @@ TEST_CASE("Shared String Value Copy Assign", "[string]") {
 	counting_string const value("Hello, World!");
 	auto const value_current_alloc = value.get_allocator().get_current_alloc();
 
-	auto const test_value = [](counting_string const& s) {
+	auto const test_value = [](auto const& s) {
 		REQUIRE(!s.empty());
 		REQUIRE(s.size() == 13);
 		REQUIRE(s[0] == 'H');
@@ -237,6 +283,18 @@ TEST_CASE("Shared String Value Copy Assign", "[string]") {
 		REQUIRE(s.get_allocator() == value.get_allocator());
 		REQUIRE(s.get_allocator().get_current_alloc() == value_current_alloc);
 	}
+
+	// value with non-propagating allocator
+	{
+		non_propagating_string const propag_value("Hello, World!");
+
+		non_propagating_string s;
+		s = propag_value;
+
+		test_value(s);
+
+		REQUIRE(s.get_allocator() != propag_value.get_allocator());
+	}
 }
 
 TEST_CASE("Shared String Value Move", "[string]") {
@@ -267,7 +325,7 @@ TEST_CASE("Shared String Value Move", "[string]") {
 }
 
 TEST_CASE("Shared String Value Move Assign", "[string]") {
-	auto const test_value = [](counting_string const& s) {
+	auto const test_value = [](auto const& s) {
 		REQUIRE(!s.empty());
 		REQUIRE(s.size() == 13);
 		REQUIRE(s[0] == 'H');
@@ -325,5 +383,17 @@ TEST_CASE("Shared String Value Move Assign", "[string]") {
 
 		REQUIRE(s.get_allocator() == original_value_allocator);
 		REQUIRE(s.get_allocator().get_current_alloc() == value_current_alloc);
+	}
+
+	// value with non-propagating allocator
+	{
+		non_propagating_string propag_value("Hello, World!");
+
+		non_propagating_string s;
+		s = std::move(propag_value);
+
+		test_value(s);
+
+		REQUIRE(s.get_allocator() != propag_value.get_allocator());
 	}
 }

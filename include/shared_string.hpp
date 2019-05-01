@@ -79,7 +79,7 @@ namespace kab
 					value_end = other.value_end;
 				} else {
 					control = make_control({ other.data(), other.size() }, access_allocator());
-					value_begin = control->owned_data + std::distance(other.control->owned_data, other.value_begin);
+					value_begin = control->owned_data + std::distance<pointer>(other.control->owned_data, other.value_begin);
 					value_end = value_begin + std::distance(other.value_begin, other.value_end);
 				}
 			}
