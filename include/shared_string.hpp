@@ -95,6 +95,18 @@ namespace kab
 		~basic_shared_string() {
 			release_current_control_if_valid();
 		}
+		void swap(basic_shared_string& other) noexcept {
+			if(this != &other) {
+				using std::swap;
+				if constexpr(alloc_traits::propagate_on_container_swap::value) {
+					swap(access_allocator(), other.access_allocator());
+				}
+				
+				swap(control, other.control);
+				swap(value_begin, other.value_begin);
+				swap(value_end, other.value_end);
+			}
+		}
 		
 		using traits_type = Traits;
 		using value_type = CharT;

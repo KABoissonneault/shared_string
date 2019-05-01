@@ -29,6 +29,7 @@ namespace {
 
 		using propagate_on_container_copy_assignment = std::true_type;
 		using propagate_on_container_move_assignment = std::true_type;
+		using propagate_on_container_swap = std::true_type;
 
 		counting_allocator() = default;
 		template<typename U>
@@ -84,6 +85,7 @@ namespace {
 
 		using propagate_on_container_copy_assignment = std::false_type;
 		using propagate_on_container_move_assignment = std::false_type;
+		using propagate_on_container_swap = std::false_type;
 
 		non_propagating_allocator() = default;
 		template<typename U>
@@ -395,5 +397,99 @@ TEST_CASE("Shared String Value Move Assign", "[string]") {
 		test_value(s);
 
 		REQUIRE(s.get_allocator() != propag_value.get_allocator());
+	}
+}
+
+TEST_CASE("Shared String Value Swap", "[string]") {
+	auto const test_value = [](auto const& s, std::string_view test_value) {
+		REQUIRE(!s.empty());
+		REQUIRE(s.size() == test_value.size());
+		REQUIRE(s[0] == test_value[0]);
+		REQUIRE(s.front() == test_value.front());
+		REQUIRE(s[test_value.size() - 1] == test_value[test_value.size() - 1]);
+		REQUIRE(s.back() == test_value.back());
+		REQUIRE_NOTHROW(s.at(0) == test_value.at(0));
+		REQUIRE_NOTHROW(s.at(test_value.size() - 1) == test_value.at(test_value.size() - 1));
+		REQUIRE_THROWS_AS(s.at(test_value.size()), std::out_of_range);
+		REQUIRE(std::strncmp(s.data(), test_value.data(), s.size()) == 0);
+	};
+	auto const test_empty = [](auto const& s) {
+		REQUIRE(s.empty());
+		REQUIRE(s.size() == 0);
+		REQUIRE_THROWS_AS(s.at(0), std::out_of_range);
+	};
+
+	// no value
+	{
+		counting_string value("Hello, World!");
+		auto const original_value_allocator = value.get_allocator();
+		auto const value_current_alloc = original_value_allocator.get_current_alloc();
+
+		counting_string s;
+		auto const original_test_allocator = s.get_allocator();
+		auto const test_current_alloc = original_test_allocator.get_current_alloc();
+		
+		s.swap(value);
+
+		test_value(s, "Hello, World!");
+		test_empty(value);
+
+		REQUIRE(s.get_allocator() == original_value_allocator);
+		REQUIRE(original_value_allocator.get_current_alloc() == value_current_alloc);
+		REQUIRE(value.get_allocator() == original_test_allocator);
+		REQUIRE(original_test_allocator.get_current_alloc() == test_current_alloc);
+	}
+
+	// value with a separate allocator
+	{
+		counting_string value("Hello, World!");
+		auto const original_value_allocator = value.get_allocator();
+		auto const value_current_alloc = original_value_allocator.get_current_alloc();
+
+		counting_string s("Test");
+		auto const original_test_allocator = s.get_allocator();
+		auto const test_current_alloc = original_test_allocator.get_current_alloc();
+
+		s.swap(value);
+
+		test_value(s, "Hello, World!");
+		test_value(value, "Test");
+
+		REQUIRE(s.get_allocator() == original_value_allocator);
+		REQUIRE(original_value_allocator.get_current_alloc() == value_current_alloc);
+		REQUIRE(value.get_allocator() == original_test_allocator);
+		REQUIRE(original_test_allocator.get_current_alloc() == test_current_alloc);
+	}
+
+	// value with equal allocator
+	{
+		counting_string value("Hello, World!");
+		auto const original_value_allocator = value.get_allocator();
+		
+		counting_string s("Test", value.get_allocator());
+		auto const value_current_alloc = original_value_allocator.get_current_alloc();
+
+		s.swap(value); // allocator will propagate
+
+		test_value(s, "Hello, World!");
+		test_value(value, "Test");
+
+		REQUIRE(s.get_allocator() == original_value_allocator);
+		REQUIRE(value.get_allocator() == original_value_allocator);
+		REQUIRE(original_value_allocator.get_current_alloc() == value_current_alloc);
+	}
+
+	// value with non-propagating allocator
+	{
+		non_propagating_string propag_value("Hello, World!");
+
+		non_propagating_string s("Test", propag_value.get_allocator()); // can only test with equal allocators
+		
+		s.swap(propag_value);
+
+		test_value(s, "Hello, World!");
+		test_value(propag_value, "Test");
+
+		REQUIRE(s.get_allocator() == propag_value.get_allocator());
 	}
 }
