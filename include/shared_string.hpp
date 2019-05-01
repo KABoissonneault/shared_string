@@ -138,8 +138,6 @@ namespace kab
 		[[nodiscard]] bool empty() const noexcept {
 			return value_begin == value_end;
 		}
-
-		// NOLINTNEXTLINE(bugprone-use-after-move)
 		void clear() noexcept { 
 			release_current_control_if_valid();
 			control = block_pointer();
