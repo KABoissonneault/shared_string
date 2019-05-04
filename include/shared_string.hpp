@@ -13,9 +13,23 @@
 namespace kab
 {
 	template<
-		typename CharT, 
-		typename Traits = std::char_traits<CharT>, 
+		typename CharT,
+		typename Traits = std::char_traits<CharT>,
 		typename Allocator = std::allocator<CharT>
+	>
+	class basic_shared_string;
+
+	namespace literals {
+		auto operator""_ss(char const* str, std::size_t size)->basic_shared_string<char>;
+		auto operator""_ss(wchar_t const* str, std::size_t size)->basic_shared_string<wchar_t>;
+		auto operator""_ss(char16_t const* str, std::size_t size)->basic_shared_string<char16_t>;
+		auto operator""_ss(char32_t const* str, std::size_t size)->basic_shared_string<char32_t>;
+	}
+
+	template<
+		typename CharT, 
+		typename Traits /*= std::char_traits<CharT>*/, 
+		typename Allocator /*= std::allocator<CharT>*/
 	> class basic_shared_string : private Allocator {
 		using string_view = std::basic_string_view<CharT, Traits>;
 		using alloc_traits = std::allocator_traits<Allocator>;
@@ -37,7 +51,7 @@ namespace kab
 			, control(alloc_traits::is_always_equal::value || access_allocator() == other.access_allocator() 
 				? acquire_if_valid(other.control)
 				: make_control({other.value_begin, other.size()}, access_allocator()))
-			, value_begin(control != nullptr ? get_data(control) : nullptr)
+			, value_begin(control != nullptr ? get_data(control) : other.value_begin)
 			, value_end(value_begin + other.size()) {
 
 		}
@@ -213,10 +227,41 @@ namespace kab
 			return std::distance<pointer>(get_data(control), value_begin);
 		}
 
+		friend auto literals::operator""_ss(char const*, std::size_t) -> basic_shared_string<char>;
+		friend auto literals::operator""_ss(wchar_t const*, std::size_t) -> basic_shared_string<wchar_t>;
+		friend auto literals::operator""_ss(char16_t const*, std::size_t)->basic_shared_string<char16_t>;
+		friend auto literals::operator""_ss(char32_t const*, std::size_t)->basic_shared_string<char32_t>;
+
+		struct literal_tag_t {};
+		inline constexpr static literal_tag_t literal_tag = {};
+		basic_shared_string(literal_tag_t, CharT const* str, std::size_t size)
+			: value_begin(str)
+			, value_end(value_begin + size) {
+
+		}
+
 		byte_pointer control = byte_pointer();
 		pointer value_begin = pointer();
 		pointer value_end = pointer();
 	};
 
 	using shared_string = basic_shared_string<char>;
+	using shared_wstring = basic_shared_string<wchar_t>;
+	using shared_u16string = basic_shared_string<char16_t>;
+	using shared_u32string = basic_shared_string<char32_t>;
+
+	namespace literals {
+		auto operator""_ss(char const* str, std::size_t size) -> shared_string {
+			return shared_string(shared_string::literal_tag, str, size);
+		}
+		auto operator""_ss(wchar_t const* str, std::size_t size) -> shared_wstring {
+			return shared_wstring(shared_wstring::literal_tag, str, size);
+		}
+		auto operator""_ss(char16_t const* str, std::size_t size) -> shared_u16string {
+			return shared_u16string(shared_u16string::literal_tag, str, size);
+		}
+		auto operator""_ss(char32_t const* str, std::size_t size) -> shared_u32string {
+			return shared_u32string(shared_u32string::literal_tag, str, size);
+		}
+	}
 }

@@ -121,6 +121,19 @@ namespace {
 	};
 
 	using non_propagating_string = kab::basic_shared_string<char, std::char_traits<char>, non_propagating_allocator<char>>;
+
+	auto const test_value = [](auto const& s, std::string_view const test_value) {
+		REQUIRE(!s.empty());
+		REQUIRE(s.size() == test_value.size());
+		REQUIRE(s[0] == test_value[0]);
+		REQUIRE(s.front() == test_value.front());
+		REQUIRE(s[test_value.size() - 1] == test_value[test_value.size() - 1]);
+		REQUIRE(s.back() == test_value.back());
+		REQUIRE_NOTHROW(s.at(0) == test_value.at(0));
+		REQUIRE_NOTHROW(s.at(test_value.size() - 1) == test_value.at(test_value.size() - 1));
+		REQUIRE_THROWS_AS(s.at(test_value.size()), std::out_of_range);
+		REQUIRE(std::strncmp(s.data(), test_value.data(), s.size()) == 0);
+	};
 }
 
 TEST_CASE("Shared String Empty", "[string]") {
@@ -131,17 +144,10 @@ TEST_CASE("Shared String Empty", "[string]") {
 }
 
 TEST_CASE("Shared String Value", "[string]") {
-	kab::shared_string const s("Hello, World!");
-	REQUIRE(s[0] == 'H');
-	REQUIRE(s.front() == 'H');
-	REQUIRE(s[12] == '!');
-	REQUIRE(s.back() == '!');
-	REQUIRE_NOTHROW(s.at(0) == 'H');
-	REQUIRE_NOTHROW(s.at(12) == '!');
-	REQUIRE(s.size() == 13);
-	REQUIRE(!s.empty());
-	REQUIRE_THROWS_AS(s.at(13), std::out_of_range);
-	REQUIRE(std::strncmp(s.data(), "Hello, World!", s.size()) == 0);
+	auto const& value = "Hello, World!";
+	kab::shared_string const s(value);
+	
+	test_value(s, value);
 }
 
 TEST_CASE("Shared String Cleared", "[string]") {
@@ -512,4 +518,28 @@ TEST_CASE("Shared String Value Swap", "[string]") {
 
 		REQUIRE(s.get_allocator() == propag_value.get_allocator());
 	}
+}
+
+TEST_CASE("Shared String Literal", "[string]") {
+	using namespace kab::literals;
+
+	auto const s = "Hello, World!"_ss;
+
+	test_value(s, "Hello, World!");
+
+	auto s2 = s;
+
+	test_value(s2, "Hello, World!");
+
+	s2 = "Goodbye, Cruel World"_ss;
+
+	test_value(s2, "Goodbye, Cruel World");
+
+	auto s3 = std::move(s2);
+
+	test_value(s3, "Goodbye, Cruel World");
+
+	s2 = std::move(s3);
+
+	test_value(s3, "Goodbye, Cruel World");
 }
