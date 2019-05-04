@@ -41,8 +41,8 @@ namespace kab
 		basic_shared_string(basic_shared_string && other) noexcept
 			: Allocator(std::move(other.access_allocator()))
 			, control(std::exchange(other.control, block_pointer()))
-			, value_begin(other.value_begin)
-			, value_end(other.value_end) {
+			, value_begin(std::exchange(other.value_begin, pointer()))
+			, value_end(std::exchange(other.value_end, pointer())) {
 
 		}
 		auto operator=(basic_shared_string const& other) -> basic_shared_string& {
@@ -116,7 +116,7 @@ namespace kab
 		using size_type = typename alloc_traits::size_type;
 		using difference_type = typename alloc_traits::difference_type;
 
-		auto get_allocator() const noexcept(std::is_nothrow_copy_constructible_v<allocator_type>) -> allocator_type {
+		auto get_allocator() const noexcept -> allocator_type {
 			return access_allocator();
 		}
 
@@ -140,7 +140,7 @@ namespace kab
 		auto back() const -> reference {
 			return *(value_end - 1);
 		}
-		auto data() const noexcept -> pointer {
+		auto data() const noexcept -> value_type const* {
 			return value_begin;
 		}
 		auto size() const noexcept -> size_type {
@@ -179,19 +179,19 @@ namespace kab
 		static auto make_control(string_view sv, allocator_type& alloc) -> block_pointer {
 			mutable_pointer const value = alloc_traits::allocate(alloc, sv.size());
 			for (size_type i = 0; i < sv.size(); ++i) {
-				alloc_traits::construct(alloc, value + i, sv[i]);
+				alloc_traits::construct(alloc, std::addressof(*value) + i, sv[i]);
 			}
 						
 			try {
 				block_allocator block_alloc(alloc);
 				block_pointer const p = block_traits::allocate(block_alloc, 1);
 
-				block_traits::construct(block_alloc, p, value, 1 /*initial refcount*/);
+				block_traits::construct(block_alloc, std::addressof(*p), value, 1 /*initial refcount*/);
 
 				return p;
 			} catch(...) {
 				for (size_type i = 0; i < sv.size(); ++i) {
-					alloc_traits::destroy(alloc, value + i);
+					alloc_traits::destroy(alloc, std::addressof(value) + i);
 				}
 				alloc_traits::deallocate(alloc, value, sv.size());
 				throw;
@@ -205,19 +205,20 @@ namespace kab
 			return p != nullptr ? acquire_control(p) : nullptr;
 		}
 		static void release_control(block_pointer p, size_type size, allocator_type& alloc) noexcept {
-			if(p->refcount.fetch_sub(1, std::memory_order_relaxed) == 1) {
+			if(p->refcount.fetch_sub(1, std::memory_order_release) == 1) {
+				std::atomic_thread_fence(std::memory_order_acquire);
 				free_control(p, size, alloc);
 			}
 		}
 		static void free_control(block_pointer p, size_type size, allocator_type& alloc) noexcept {
 			mutable_pointer const value = p->owned_data;
 			for (size_type i = 0; i < size; ++i) {
-				alloc_traits::destroy(alloc, value + i);
+				alloc_traits::destroy(alloc, std::addressof(*value) + i);
 			}
 			alloc_traits::deallocate(alloc, value, size);
 
 			block_allocator block_alloc(alloc);
-			block_traits::destroy(block_alloc, p);
+			block_traits::destroy(block_alloc, std::addressof(*p));
 			block_traits::deallocate(block_alloc, p, 1);
 		}
 		void release_current_control_if_valid() noexcept {
