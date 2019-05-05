@@ -9,6 +9,7 @@
 #include <string_view>
 #include <atomic>
 #include <cstddef>
+#include <cassert>
 
 namespace kab
 {
@@ -114,11 +115,15 @@ namespace kab
 		~basic_shared_string() {
 			release_current_control_if_valid();
 		}
-		void swap(basic_shared_string& other) noexcept {
+
+		void swap(basic_shared_string& other) 
+			noexcept(alloc_traits::propagate_on_container_swap::value || alloc_traits::is_always_equal::value) {
 			if(this != &other) {
 				using std::swap;
 				if constexpr(alloc_traits::propagate_on_container_swap::value) {
 					swap(access_allocator(), other.access_allocator());
+				} else if constexpr(!alloc_traits::is_always_equal::value) {
+					assert(access_allocator() == other.access_allocator() && "Allocators must be equal if not propagating on swap");
 				}
 				
 				swap(control, other.control);
