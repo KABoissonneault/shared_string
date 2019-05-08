@@ -1,0 +1,39 @@
+<pre class=metadata>
+Title: basic_shared_string: A string container with non-allocating constant time copies
+Shortname: PXXXX
+Revision: 0.1
+Group: WG21
+Status: D
+Audience: LWG, LEWG
+Editor: Kévin Alexandre Boissonneault, Behaviour Interactive, kaboissonneault@gmail.com
+Abstract: Proposal for a new string container in the standard library, with simple copies
+URL: https://example.com
+Level: 0
+</pre>
+
+Background Motivation  {#motivation}
+====================================
+
+In most popular programming languages, the default string type has the properties of being cheap to copy, but expensive to mutate. Whether it is implemented with reference counting, handles over garbage collected memory, or a copy-on-write structure, the basic idea of a shared immutable data structure seems especially useful for strings. 
+
+In the C++ standard library itself, implementations already have to use some sort of shared string for the string contained in `std::runtime_error`, because the copies must not throw under any circumstance. libstdc++ is known for having used immutable sharing in its `std::string` implementation until C++11.
+
+Two attributes seem to be especially strong for shared strings: non-throwing copies help during error handling or other critical areas, and the constant time copy can be a really important performance characteristic for programs expecting to handle strings of arbitrary sizes
+
+This proposal is therefore putting forward a new container template: std::basic_shared_string
+
+Design {#design}
+========================
+
+Design Decisions {#decisions}
+================================
+
+Examples {#alternatives}
+========================
+
+Acknowledgements {#acknowledgements}
+====================================
+
+References {#references}
+========================
+
