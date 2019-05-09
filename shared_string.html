@@ -1230,7 +1230,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 10ff3eb4050069e20bb9b943c8b76fe5bfe3a48f" name="generator">
   <link href="https://example.com" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="0e7b129b2c63346c8b166d950f5c04d0a2a0e8b4" name="document-revision">
+  <meta content="3e217c27447346321b49e262ab0d03a6578e36bd" name="document-revision">
 <style>/* style-md-lists */
 
 /* This is a weird hack for me not yet following the commonmark spec
@@ -1270,6 +1270,64 @@ figcaption {
 figcaption:not(.no-marker)::before {
     content: "Figure " counter(figure) " ";
 }</style>
+<style>/* style-syntax-highlighting */
+
+.highlight:not(.idl) { background: hsl(24, 20%, 95%); }
+code.highlight { padding: .1em; border-radius: .3em; }
+pre.highlight, pre > code.highlight { display: block; padding: 1em; margin: .5em 0; overflow: auto; border-radius: 0; }
+c-[a] { color: #990055 } /* Keyword.Declaration */
+c-[b] { color: #990055 } /* Keyword.Type */
+c-[c] { color: #708090 } /* Comment */
+c-[d] { color: #708090 } /* Comment.Multiline */
+c-[e] { color: #0077aa } /* Name.Attribute */
+c-[f] { color: #669900 } /* Name.Tag */
+c-[g] { color: #222222 } /* Name.Variable */
+c-[k] { color: #990055 } /* Keyword */
+c-[l] { color: #000000 } /* Literal */
+c-[m] { color: #000000 } /* Literal.Number */
+c-[n] { color: #0077aa } /* Name */
+c-[o] { color: #999999 } /* Operator */
+c-[p] { color: #999999 } /* Punctuation */
+c-[s] { color: #a67f59 } /* Literal.String */
+c-[t] { color: #a67f59 } /* Literal.String.Single */
+c-[u] { color: #a67f59 } /* Literal.String.Double */
+c-[cp] { color: #708090 } /* Comment.Preproc */
+c-[c1] { color: #708090 } /* Comment.Single */
+c-[cs] { color: #708090 } /* Comment.Special */
+c-[kc] { color: #990055 } /* Keyword.Constant */
+c-[kn] { color: #990055 } /* Keyword.Namespace */
+c-[kp] { color: #990055 } /* Keyword.Pseudo */
+c-[kr] { color: #990055 } /* Keyword.Reserved */
+c-[ld] { color: #000000 } /* Literal.Date */
+c-[nc] { color: #0077aa } /* Name.Class */
+c-[no] { color: #0077aa } /* Name.Constant */
+c-[nd] { color: #0077aa } /* Name.Decorator */
+c-[ni] { color: #0077aa } /* Name.Entity */
+c-[ne] { color: #0077aa } /* Name.Exception */
+c-[nf] { color: #0077aa } /* Name.Function */
+c-[nl] { color: #0077aa } /* Name.Label */
+c-[nn] { color: #0077aa } /* Name.Namespace */
+c-[py] { color: #0077aa } /* Name.Property */
+c-[ow] { color: #999999 } /* Operator.Word */
+c-[mb] { color: #000000 } /* Literal.Number.Bin */
+c-[mf] { color: #000000 } /* Literal.Number.Float */
+c-[mh] { color: #000000 } /* Literal.Number.Hex */
+c-[mi] { color: #000000 } /* Literal.Number.Integer */
+c-[mo] { color: #000000 } /* Literal.Number.Oct */
+c-[sb] { color: #a67f59 } /* Literal.String.Backtick */
+c-[sc] { color: #a67f59 } /* Literal.String.Char */
+c-[sd] { color: #a67f59 } /* Literal.String.Doc */
+c-[se] { color: #a67f59 } /* Literal.String.Escape */
+c-[sh] { color: #a67f59 } /* Literal.String.Heredoc */
+c-[si] { color: #a67f59 } /* Literal.String.Interpol */
+c-[sx] { color: #a67f59 } /* Literal.String.Other */
+c-[sr] { color: #a67f59 } /* Literal.String.Regex */
+c-[ss] { color: #a67f59 } /* Literal.String.Symbol */
+c-[vc] { color: #0077aa } /* Name.Variable.Class */
+c-[vg] { color: #0077aa } /* Name.Variable.Global */
+c-[vi] { color: #0077aa } /* Name.Variable.Instance */
+c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
+</style>
 <style>/* style-selflinks */
 
 .heading, .issue, .note, .example, li, dt {
@@ -1382,7 +1440,7 @@ pre .property::before, pre .property::after {
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">PXXXXR0<br>basic_shared_string: A string container with non-allocating constant time copies</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2019-05-07">2019-05-07</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2019-05-08">2019-05-08</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -1409,22 +1467,98 @@ pre .property::before, pre .property::after {
     <li><a href="#motivation"><span class="secno">1</span> <span class="content">Background Motivation</span></a>
     <li><a href="#design"><span class="secno">2</span> <span class="content">Design</span></a>
     <li><a href="#decisions"><span class="secno">3</span> <span class="content">Design Decisions</span></a>
-    <li><a href="#alternatives"><span class="secno">4</span> <span class="content">Examples</span></a>
+    <li><a href="#examples"><span class="secno">4</span> <span class="content">Examples</span></a>
     <li><a href="#acknowledgements"><span class="secno">5</span> <span class="content">Acknowledgements</span></a>
     <li><a href="#references"><span class="secno">6</span> <span class="content">References</span></a>
    </ol>
   </nav>
   <main>
    <h2 class="heading settled" data-level="1" id="motivation"><span class="secno">1. </span><span class="content">Background Motivation</span><a class="self-link" href="#motivation"></a></h2>
-   <p>In most popular programming languages, the default string type has the properties of being cheap to copy, but expensive to mutate. Whether it is implemented with reference counting, handles over garbage collected memory, or a copy-on-write structure, the basic idea of a shared immutable data structure seems especially useful for strings.</p>
-   <p>In the C++ standard library itself, implementations already have to use some sort of shared string for the string contained in `std::runtime_error`, because the copies must not throw under any circumstance. libstdc++ is known for having used immutable sharing in its `std::string` implementation until C++11.</p>
-   <p>Two attributes seem to be especially strong for shared strings: non-throwing copies help during error handling or other critical areas, and the constant time copy can be a really important performance characteristic for programs expecting to handle strings of arbitrary sizes</p>
+   <p>In most popular programming languages, the default string type has the properties of being cheap to copy, but expensive to mutate. Whether it is implemented with reference counting, handles over garbage collected memory, or a copy-on-write structure, the basic idea of a shared immutable data structure help reasoning about performance and scalability. Having a guarantee that a copy has constant execution time whether the value contains no or thousands of elements seems especially useful for strings.</p>
+   <p>In the C++ standard library itself, implementations already have to use some sort of shared string for the string contained in std::runtime_error, because the copies must not throw under any circumstance. libstdc++ is known for having used copy-on-write sharing in its std::string implementation until C++11.</p>
+   <p>Two attributes seem to be especially strong for shared strings: non-throwing copies help during error handling or other critical areas, and the constant time copy can be a really important performance characteristic for programs expecting to handle strings of arbitrary sizes. On top of that, turning deep copies into sharing may reduce memory usage. If the sharing is atomic, since the value cannot be mutated and cannot be destroyed while at least one container owning it is alive, immutable structures are also very useful for multi-threaded programs in many ways (see Examples)</p>
    <p>This proposal is therefore putting forward a new container template: std::basic_shared_string</p>
    <h2 class="heading settled" data-level="2" id="design"><span class="secno">2. </span><span class="content">Design</span><a class="self-link" href="#design"></a></h2>
+   <p>basic_shared_string is an allocator-aware string container. Like basic_string, this template works for all character types, has a customizable character traits, and uses an Allocator for managing storage allocation and object construction. basic_shared_string aims to reproduce most of the interface that people expect in basic_string and basic_string_view, except for the parts which aim at partially mutating the value. basic_shared_string aims to avoid the mistakes of the classical copy-on-write structures, which offer implicit sharing with a mutable interface[1]. Like basic_string_view, its iterators, pointers, and reference do not let the user mutate the referred element. Also, like array, the container only partially satisfies SequenceContainer, so no insert, push_back, resize, or capacity. Modifying the container through assignment or clear is fine.</p>
+   <p>Mutation is about as expensive as construction, and therefore the interface should reflect that usage, by forcing mutation only through explicitely assigning a whole new value.</p>
+   <p>When copying the container, either through copy construction, copy assignment, or substr, both containers end up sharing the same value - if the allocators are equal. In general, the container is most efficient for allocators that tend to be "always equal", or otherwise propagates on copy construction, copy assignment, and move assignment. If after copying a container, both containers have equal allocators, both containers are said to _share ownership_. If a basic_shared_string does not share ownership with any other basic_shared_string, it has _unique ownership_. If a basic_shared_string is destroyed, re-assigned, or cleared while having unique ownership, the elements are destroyed, and the storage is freed.</p>
    <h2 class="heading settled" data-level="3" id="decisions"><span class="secno">3. </span><span class="content">Design Decisions</span><a class="self-link" href="#decisions"></a></h2>
-   <h2 class="heading settled" data-level="4" id="alternatives"><span class="secno">4. </span><span class="content">Examples</span><a class="self-link" href="#alternatives"></a></h2>
+   <h2 class="heading settled" data-level="4" id="examples"><span class="secno">4. </span><span class="content">Examples</span><a class="self-link" href="#examples"></a></h2>
+   <p>Let’s take an example about a single-producer multi-consumer scenario. The producer may at any time produce a string value, and the consumers may also at any time request the current string value</p>
+<pre class="language-c++ highlight"><c- n>class</c-> <c- n>string_producer</c-> <c- p>{</c->
+  <c- n>using</c-> <c- n>my_container</c-> <c- o>=</c-> <c- n>std</c-><c- o>::</c-><c- n>string</c-><c- p>;</c->
+  <c- n>my_container</c-> <c- n>m_value</c-><c- p>;</c->
+  <c- n>mutable</c-> <c- n>std</c-><c- o>::</c-><c- n>shared_mutex</c-> <c- n>m_value_lock</c-><c- p>;</c->
+  <c- n>std</c-><c- o>::</c-><c- kr>thread</c-> <c- n>m_producer_thread</c-><c- p>;</c->
+  
+  <c- b>bool</c-> <c- nf>running</c-><c- p>()</c-> <c- k>const</c-><c- p>;</c->
+  <c- b>bool</c-> <c- nf>has_new_value</c-><c- p>()</c-> <c- k>const</c-><c- p>;</c->
+  <c- n>my_container</c-> <c- nf>consume_new_value</c-><c- p>();</c->
+  <c- b>void</c-> <c- nf>produce</c-><c- p>()</c-> <c- p>{</c->
+    <c- k>while</c-><c- p>(</c-><c- n>running</c-><c- p>())</c-> <c- p>{</c->
+      <c- k>if</c-><c- p>(</c-><c- n>has_new_value</c-><c- p>())</c-> <c- p>{</c->
+        <c- n>std</c-><c- o>::</c-><c- n>scoped_lock</c-> <c- n>lock</c-><c- p>(</c-><c- n>m_value_lock</c-><c- p>);</c->
+        <c- n>m_value</c-> <c- o>=</c-> <c- n>consume_new_value</c-><c- p>();</c->
+      <c- p>}</c->
+    <c- p>}</c->
+  <c- p>}</c->
+  
+<c- nl>public</c-><c- p>:</c->
+  <c- n>string_producer</c-><c- p>()</c->
+	<c- o>:</c-> <c- n>m_producer_thread</c-><c- p>(</c-><c- o>&amp;</c-><c- n>string_producer</c-><c- o>::</c-><c- n>produce</c-><c- p>,</c-> <c- n>this</c-><c- p>)</c-> <c- p>{</c->
+	
+  <c- p>}</c->
+  
+  <c- n>my_container</c-> <c- n>get_value</c-><c- p>()</c-> <c- k>const</c-> <c- p>{</c->
+    <c- n>std</c-><c- o>::</c-><c- n>shared_lock</c-> <c- n>lock</c-><c- p>(</c-><c- n>m_value_lock</c-><c- p>);</c->
+	<c- k>return</c-> <c- n>m_value</c-><c- p>;</c->
+  <c- p>}</c->
+<c- p>};</c->
+</pre>
+   <p>If string_producer wants to be able to provider its value without burdening its users with external synchronization, deep copying is the only option. Reads to m_value must either happen before or after any assignment from the producer thread. Therefore, returning a reference to the container or a string_view cannot possibly allow synchronization with the producer. The deep copy can potentially be very expensive: not only m_value could potentially be arbitrarily big, but each consumer must also produce its own value. We therefore hit scalability concerns both with the size of the value, and the number of consumers</p>
+   <p>Take this alternative using a shared_string</p>
+<pre class="language-c++ highlight"><c- n>class</c-> <c- n>string_producer</c-> <c- p>{</c->
+  <c- n>using</c-> <c- n>my_container</c-> <c- o>=</c-> <c- n>std</c-><c- o>::</c-><c- n>shared_string</c-><c- p>;</c->
+  <c- n>my_container</c-> <c- n>m_value</c-><c- p>;</c->
+  <c- n>std</c-><c- o>::</c-><c- kr>thread</c-> <c- n>m_producer_thread</c-><c- p>;</c->
+  
+  <c- b>bool</c-> <c- nf>running</c-><c- p>()</c-> <c- k>const</c-><c- p>;</c->
+  <c- b>bool</c-> <c- nf>has_new_value</c-><c- p>()</c-> <c- k>const</c-><c- p>;</c->
+  <c- n>my_container</c-> <c- nf>consume_new_value</c-><c- p>();</c->
+  <c- b>void</c-> <c- nf>produce</c-><c- p>()</c-> <c- p>{</c->
+    <c- k>while</c-><c- p>(</c-><c- n>running</c-><c- p>())</c-> <c- p>{</c->
+	  <c- k>if</c-><c- p>(</c-><c- n>has_new_value</c-><c- p>())</c-> <c- p>{</c->
+	    <c- n>m_value</c-> <c- o>=</c-> <c- n>consume_new_value</c-><c- p>();</c->
+	  <c- p>}</c->
+	<c- p>}</c->
+  <c- p>}</c->
+  
+<c- nl>public</c-><c- p>:</c->
+  <c- n>string_producer</c-><c- p>()</c->
+	<c- o>:</c-> <c- n>m_producer_thread</c-><c- p>(</c-><c- o>&amp;</c-><c- n>string_producer</c-><c- o>::</c-><c- n>produce</c-><c- p>,</c-> <c- n>this</c-><c- p>)</c-> <c- p>{</c->
+	
+  <c- p>}</c->
+  
+  <c- n>my_container</c-> <c- n>get_value</c-><c- p>()</c-> <c- k>const</c-> <c- p>{</c->
+	<c- k>return</c-> <c- n>m_value</c-><c- p>;</c->
+  <c- p>}</c->
+<c- p>};</c->
+</pre>
+   <p>Not only have we removed the burden for any explicit synchronization from string_producer, but we’ve also ensured the copy takes a constant amount of time, regardless of the size of the string or the number of consumers (if an atomic reference count is used for the implementation, incrementing the counter can use a relaxed memory order, and may also be lock-free).</p>
    <h2 class="heading settled" data-level="5" id="acknowledgements"><span class="secno">5. </span><span class="content">Acknowledgements</span><a class="self-link" href="#acknowledgements"></a></h2>
    <h2 class="heading settled" data-level="6" id="references"><span class="secno">6. </span><span class="content">References</span><a class="self-link" href="#references"></a></h2>
+   <p>Qt’s experience with implicit copy-on-write sharing</p>
+   <ul>
+    <li data-md>
+     <p>https://doc.qt.io/qt-5/implicit-sharing.html</p>
+    <li data-md>
+     <p>https://doc.qt.io/qt-5/containers.html#implicit-sharing-iterator-problem</p>
+   </ul>
+   <p>The Java String</p>
+   <ul>
+    <li data-md>
+     <p>https://docs.oracle.com/javase/10/docs/api/java/lang/String.html</p>
+   </ul>
   </main>
 <script>
 (function() {

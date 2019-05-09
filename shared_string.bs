@@ -14,22 +14,97 @@ Level: 0
 Background Motivation  {#motivation}
 ====================================
 
-In most popular programming languages, the default string type has the properties of being cheap to copy, but expensive to mutate. Whether it is implemented with reference counting, handles over garbage collected memory, or a copy-on-write structure, the basic idea of a shared immutable data structure seems especially useful for strings. 
+In most popular programming languages, the default string type has the properties of being cheap to copy, but expensive to mutate. Whether it is implemented with reference counting, handles over garbage collected memory, or a copy-on-write structure, the basic idea of a shared immutable data structure help reasoning about performance and scalability. Having a guarantee that a copy has constant execution time whether the value contains no or thousands of elements seems especially useful for strings. 
 
-In the C++ standard library itself, implementations already have to use some sort of shared string for the string contained in `std::runtime_error`, because the copies must not throw under any circumstance. libstdc++ is known for having used immutable sharing in its `std::string` implementation until C++11.
+In the C++ standard library itself, implementations already have to use some sort of shared string for the string contained in std::runtime_error, because the copies must not throw under any circumstance. libstdc++ is known for having used copy-on-write sharing in its std::string implementation until C++11.
 
-Two attributes seem to be especially strong for shared strings: non-throwing copies help during error handling or other critical areas, and the constant time copy can be a really important performance characteristic for programs expecting to handle strings of arbitrary sizes
+Two attributes seem to be especially strong for shared strings: non-throwing copies help during error handling or other critical areas, and the constant time copy can be a really important performance characteristic for programs expecting to handle strings of arbitrary sizes. On top of that, turning deep copies into sharing may reduce memory usage. If the sharing is atomic, since the value cannot be mutated and cannot be destroyed while at least one container owning it is alive, immutable structures are also very useful for multi-threaded programs in many ways (see Examples)
 
 This proposal is therefore putting forward a new container template: std::basic_shared_string
 
 Design {#design}
 ========================
 
-Design Decisions {#decisions}
-================================
+basic_shared_string is an allocator-aware string container. Like basic_string, this template works for all character types, has a customizable character traits, and uses an Allocator for managing storage allocation and object construction. basic_shared_string aims to reproduce most of the interface that people expect in basic_string and basic_string_view, except for the parts which aim at partially mutating the value. basic_shared_string aims to avoid the mistakes of the classical copy-on-write structures, which offer implicit sharing with a mutable interface[1]. Like basic_string_view, its iterators, pointers, and reference do not let the user mutate the referred element. Also, like array, the container only partially satisfies SequenceContainer, so no insert, push_back, resize, or capacity. Modifying the container through assignment or clear is fine.
 
-Examples {#alternatives}
+Mutation is about as expensive as construction, and therefore the interface should reflect that usage, by forcing mutation only through explicitely assigning a whole new value.
+
+When copying the container, either through copy construction, copy assignment, or substr, both containers end up sharing the same value - if the allocators are equal. In general, the container is most efficient for allocators that tend to be "always equal", or otherwise propagates on copy construction, copy assignment, and move assignment. If after copying a container, both containers have equal allocators, both containers are said to _share ownership_. If a basic_shared_string does not share ownership with any other basic_shared_string, it has _unique ownership_. If a basic_shared_string is destroyed, re-assigned, or cleared while having unique ownership, the elements are destroyed, and the storage is freed.
+
+Design Decisions {#decisions}
+=============================
+
+Examples {#examples}
 ========================
+
+Let's take an example about a single-producer multi-consumer scenario. The producer may at any time produce a string value, and the consumers may also at any time request the current string value
+
+```c++
+class string_producer {
+  using my_container = std::string;
+  my_container m_value;
+  mutable std::shared_mutex m_value_lock;
+  std::thread m_producer_thread;
+  
+  bool running() const;
+  bool has_new_value() const;
+  my_container consume_new_value();
+  void produce() {
+    while(running()) {
+      if(has_new_value()) {
+        std::scoped_lock lock(m_value_lock);
+        m_value = consume_new_value();
+      }
+    }
+  }
+  
+public:
+  string_producer()
+	: m_producer_thread(&string_producer::produce, this) {
+	
+  }
+  
+  my_container get_value() const {
+    std::shared_lock lock(m_value_lock);
+	return m_value;
+  }
+};
+```
+
+If string_producer wants to be able to provider its value without burdening its users with external synchronization, deep copying is the only option. Reads to m_value must either happen before or after any assignment from the producer thread. Therefore, returning a reference to the container or a string_view cannot possibly allow synchronization with the producer. The deep copy can potentially be very expensive: not only m_value could potentially be arbitrarily big, but each consumer must also produce its own value. We therefore hit scalability concerns both with the size of the value, and the number of consumers
+
+Take this alternative using a shared_string
+
+```c++
+class string_producer {
+  using my_container = std::shared_string;
+  my_container m_value;
+  std::thread m_producer_thread;
+  
+  bool running() const;
+  bool has_new_value() const;
+  my_container consume_new_value();
+  void produce() {
+    while(running()) {
+	  if(has_new_value()) {
+	    m_value = consume_new_value();
+	  }
+	}
+  }
+  
+public:
+  string_producer()
+	: m_producer_thread(&string_producer::produce, this) {
+	
+  }
+  
+  my_container get_value() const {
+	return m_value;
+  }
+};
+```
+
+Not only have we removed the burden for any explicit synchronization from string_producer, but we've also ensured the copy takes a constant amount of time, regardless of the size of the string or the number of consumers (if an atomic reference count is used for the implementation, incrementing the counter can use a relaxed memory order, and may also be lock-free).
 
 Acknowledgements {#acknowledgements}
 ====================================
@@ -37,3 +112,9 @@ Acknowledgements {#acknowledgements}
 References {#references}
 ========================
 
+Qt's experience with implicit copy-on-write sharing
+- https://doc.qt.io/qt-5/implicit-sharing.html
+- https://doc.qt.io/qt-5/containers.html#implicit-sharing-iterator-problem
+
+The Java String
+- https://docs.oracle.com/javase/10/docs/api/java/lang/String.html
